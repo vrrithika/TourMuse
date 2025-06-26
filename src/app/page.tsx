@@ -1,103 +1,219 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import type React from "react"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { CalendarIcon, MapPinIcon, DollarSignIcon, SparklesIcon } from "lucide-react"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
+import type { DateRange } from "react-day-picker"
+import { LoadingOverlay } from "@/components/loading-overlay"
+import { Navbar } from "@/components/navbar"
+
+const travelStyles = [
+  { value: "relaxation", label: "🧘 Relaxation", description: "Peaceful and rejuvenating experiences" },
+  { value: "cultural", label: "🎨 Cultural", description: "Museums, art, and local traditions" },
+  { value: "adventure", label: "🏞 Adventure", description: "Outdoor activities and thrills" },
+  { value: "foodie", label: "🍽️ Foodie", description: "Culinary experiences and local cuisine" },
+  { value: "shopping", label: "🛍️ Shopping", description: "Markets, malls, and unique finds" },
+  { value: "tourist", label: "📷 Tourist Hotspots", description: "Famous landmarks and attractions" },
+]
+
+export default function HomePage() {
+  const router = useRouter()
+  const [location, setLocation] = useState("")
+  const [dateRange, setDateRange] = useState<DateRange | undefined>()
+  const [budget, setBudget] = useState("")
+  const [travelStyle, setTravelStyle] = useState("")
+  const [ecoFriendly, setEcoFriendly] = useState(false)
+  const [dynamicReplanning, setDynamicReplanning] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!location || !dateRange?.from || !dateRange?.to || !budget || !travelStyle) {
+      return
+    }
+
+    setIsLoading(true)
+
+    // Simulate API call to generate trip plan
+    setTimeout(() => {
+      const tripData = {
+        location,
+        dateRange,
+        budget: Number.parseInt(budget),
+        travelStyle,
+        ecoFriendly,
+        dynamicReplanning,
+        id: Date.now().toString(),
+      }
+
+      localStorage.setItem("currentTrip", JSON.stringify(tripData))
+      router.push("/itinerary")
+    }, 3000)
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <Navbar />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {isLoading && <LoadingOverlay message="Generating your perfect trip plan..." />}
+
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+            AI Trip Planner
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Smart travel planning with adaptive itineraries and budget optimization
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <Card className="max-w-2xl mx-auto shadow-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <SparklesIcon className="h-6 w-6 text-purple-600" />
+              Plan Your Perfect Trip
+            </CardTitle>
+            <CardDescription>
+              Tell us about your dream destination and we'll create a personalized itinerary
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="location" className="flex items-center gap-2">
+                  <MapPinIcon className="h-4 w-4" />
+                  Destination
+                </Label>
+                <Input
+                  id="location"
+                  placeholder="Where do you want to go?"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  Travel Dates
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !dateRange && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
+                          </>
+                        ) : (
+                          format(dateRange.from, "LLL dd, y")
+                        )
+                      ) : (
+                        <span>Pick your travel dates</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="budget" className="flex items-center gap-2">
+                  <DollarSignIcon className="h-4 w-4" />
+                  Budget (USD)
+                </Label>
+                <Input
+                  id="budget"
+                  type="number"
+                  placeholder="Enter your budget"
+                  value={budget}
+                  onChange={(e) => setBudget(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Travel Style</Label>
+                <Select value={travelStyle} onValueChange={setTravelStyle} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose your travel style" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {travelStyles.map((style) => (
+                      <SelectItem key={style.value} value={style.value}>
+                        <div className="flex flex-col">
+                          <span>{style.label}</span>
+                          <span className="text-sm text-gray-500">{style.description}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="eco"
+                    checked={ecoFriendly}
+                    onCheckedChange={(checked) => setEcoFriendly(checked as boolean)}
+                  />
+                  <Label htmlFor="eco" className="text-sm">
+                    🌱 Prefer eco-friendly options
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="dynamic"
+                    checked={dynamicReplanning}
+                    onCheckedChange={(checked) => setDynamicReplanning(checked as boolean)}
+                  />
+                  <Label htmlFor="dynamic" className="text-sm">
+                    🔄 Enable dynamic replanning (weather & events)
+                  </Label>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              >
+                Generate My Trip Plan
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
-  );
+  )
 }
