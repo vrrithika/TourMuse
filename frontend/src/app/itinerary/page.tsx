@@ -12,9 +12,12 @@ import { LoadingOverlay } from "@/components/loading-overlay"
 import { Navbar } from "@/components/navbar"
 import { RefreshCwIcon, HelpCircleIcon, DollarSignIcon, CheckCircleIcon, DownloadIcon } from "lucide-react"
 import { mockItineraryData } from "@/lib/mock-data"
+import { useAuth } from "@/components/providers/auth-provider"
 
 export default function ItineraryPage() {
   const router = useRouter()
+  const { isAuthenticated, isLoading } = useAuth()
+
   const [tripData, setTripData] = useState<any>(null)
   const [itinerary, setItinerary] = useState(mockItineraryData)
   const [selectedPlace, setSelectedPlace] = useState<any>(null)
@@ -22,18 +25,24 @@ export default function ItineraryPage() {
   const [isReplanning, setIsReplanning] = useState(false)
   const [whyExplanation, setWhyExplanation] = useState("")
 
+  // Guard: redirect to auth if not authenticated
   useEffect(() => {
-    const stored = localStorage.getItem("currentTrip")
-    if (stored) {
-      setTripData(JSON.parse(stored))
-    } else {
-      router.push("/")
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        router.push("/auth")
+      } else {
+        const stored = localStorage.getItem("currentTrip")
+        if (stored) {
+          setTripData(JSON.parse(stored))
+        } else {
+          router.push("/")
+        }
+      }
     }
-  }, [router])
+  }, [isAuthenticated, isLoading, router])
 
   const handleReplan = () => {
     setIsReplanning(true)
-    // Simulate AI replanning
     setTimeout(() => {
       setItinerary({ ...mockItineraryData, lastUpdated: new Date().toISOString() })
       setIsReplanning(false)
@@ -42,14 +51,13 @@ export default function ItineraryPage() {
 
   const handleWhyClick = () => {
     setWhyExplanation(
-      "Our AI selected these places based on your cultural travel style preference, budget constraints, and current weather conditions. The morning museum visit avoids afternoon crowds, while the evening restaurant choice offers authentic local cuisine within your budget range.",
+      "Our AI selected these places based on your travel style, budget and preferences."
     )
   }
 
   const handleExport = () => {
-    // Simulate PDF export
     const element = document.createElement("a")
-    const file = new Blob(["Trip Plan Export - This would be a PDF in production"], { type: "text/plain" })
+    const file = new Blob(["Trip Plan Export"], { type: "text/plain" })
     element.href = URL.createObjectURL(file)
     element.download = `trip-plan-${tripData?.location}.txt`
     document.body.appendChild(element)
@@ -57,21 +65,27 @@ export default function ItineraryPage() {
     document.body.removeChild(element)
   }
 
-  if (!tripData) return null
+  if (isLoading || !tripData) {
+    return (
+      <LoadingOverlay message="Loading your itinerary..." />
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      {isReplanning && <LoadingOverlay message="Generating new plan based on latest conditions..." />}
+      {isReplanning && <LoadingOverlay message="Generating new plan..." />}
 
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Your Trip to {tripData.location}</h1>
           <div className="flex flex-wrap gap-2 mb-4">
             <Badge variant="secondary">{tripData.travelStyle}</Badge>
-            <Badge variant="outline">${tripData.budget} budget</Badge>
-            {tripData.ecoFriendly && <Badge className="bg-green-100 text-green-800">🌱 Eco-friendly</Badge>}
+            <Badge variant="outline">₹{tripData.budget} budget</Badge>
+            {tripData.ecoFriendly && (
+              <Badge className="bg-green-100 text-green-800">🌱 Eco-friendly</Badge>
+            )}
           </div>
         </div>
 
@@ -94,28 +108,23 @@ export default function ItineraryPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button onClick={handleReplan} className="w-full" variant="outline">
-                  <RefreshCwIcon className="h-4 w-4 mr-2" />
-                  Replan Trip
+                  <RefreshCwIcon className="h-4 w-4 mr-2" /> Replan Trip
                 </Button>
 
                 <Button onClick={handleWhyClick} className="w-full" variant="outline">
-                  <HelpCircleIcon className="h-4 w-4 mr-2" />
-                  Why These Places?
+                  <HelpCircleIcon className="h-4 w-4 mr-2" /> Why These Places?
                 </Button>
 
                 <Button onClick={() => router.push("/budget")} className="w-full" variant="outline">
-                  <DollarSignIcon className="h-4 w-4 mr-2" />
-                  View Budget Summary
+                  <DollarSignIcon className="h-4 w-4 mr-2" /> View Budget Summary
                 </Button>
 
                 <Button onClick={() => setShowConfirmModal(true)} className="w-full bg-green-600 hover:bg-green-700">
-                  <CheckCircleIcon className="h-4 w-4 mr-2" />
-                  Confirm Plan
+                  <CheckCircleIcon className="h-4 w-4 mr-2" /> Confirm Plan
                 </Button>
 
                 <Button onClick={handleExport} className="w-full" variant="outline">
-                  <DownloadIcon className="h-4 w-4 mr-2" />
-                  Export as PDF
+                  <DownloadIcon className="h-4 w-4 mr-2" /> Export as PDF
                 </Button>
               </CardContent>
             </Card>
@@ -134,7 +143,9 @@ export default function ItineraryPage() {
         </div>
       </div>
 
-      {selectedPlace && <PlaceDetailsModal place={selectedPlace} onClose={() => setSelectedPlace(null)} />}
+      {selectedPlace && (
+        <PlaceDetailsModal place={selectedPlace} onClose={() => setSelectedPlace(null)} />
+      )}
 
       {showConfirmModal && (
         <ConfirmPlanModal

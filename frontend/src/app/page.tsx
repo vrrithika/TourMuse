@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { CalendarIcon, MapPinIcon, DollarSignIcon, SparklesIcon } from "lucide-react"
+import { CalendarIcon, MapPinIcon, SparklesIcon, IndianRupee } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
@@ -18,6 +17,7 @@ import { cn } from "@/lib/utils"
 import type { DateRange } from "react-day-picker"
 import { LoadingOverlay } from "@/components/loading-overlay"
 import { Navbar } from "@/components/navbar"
+import { useAuth } from "@/components/providers/auth-provider"
 
 const travelStyles = [
   { value: "relaxation", label: "🧘 Relaxation", description: "Peaceful and rejuvenating experiences" },
@@ -35,11 +35,28 @@ export default function HomePage() {
   const [budget, setBudget] = useState("")
   const [travelStyle, setTravelStyle] = useState("")
   const [ecoFriendly, setEcoFriendly] = useState(false)
-  const [dynamicReplanning, setDynamicReplanning] = useState(true)
+  const [dynamicReplanning, setDynamicReplanning] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
+
+  // Handle post-login redirect if pending trip data exists
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      const pendingTrip = localStorage.getItem("pendingTripData")
+      const redirectPath = localStorage.getItem("postLoginRedirect")
+
+      if (pendingTrip && redirectPath === "/itinerary") {
+        localStorage.setItem("currentTrip", pendingTrip)
+        localStorage.removeItem("pendingTripData")
+        localStorage.removeItem("postLoginRedirect")
+        router.push("/itinerary")
+      }
+    }
+  }, [isAuthenticated, authLoading, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
     if (!location || !dateRange?.from || !dateRange?.to || !budget || !travelStyle) {
       return
     }
@@ -58,21 +75,28 @@ export default function HomePage() {
         id: Date.now().toString(),
       }
 
+      if (!isAuthenticated) {
+        localStorage.setItem("pendingTripData", JSON.stringify(tripData))
+        localStorage.setItem("postLoginRedirect", "/itinerary")
+        router.push("/auth")
+        return
+      }
+
       localStorage.setItem("currentTrip", JSON.stringify(tripData))
       router.push("/itinerary")
-    }, 3000)
+    }, 1500)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-purple-50">
       <Navbar />
 
       {isLoading && <LoadingOverlay message="Generating your perfect trip plan..." />}
 
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-            AI Trip Planner
+          <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent mb-4">
+            TourMuse-AI Trip Planner
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Smart travel planning with adaptive itineraries and budget optimization
@@ -82,7 +106,7 @@ export default function HomePage() {
         <Card className="max-w-2xl mx-auto shadow-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <SparklesIcon className="h-6 w-6 text-purple-600" />
+              <SparklesIcon className="h-6 w-6 text-pink-600" />
               Plan Your Perfect Trip
             </CardTitle>
             <CardDescription>
@@ -148,8 +172,8 @@ export default function HomePage() {
 
               <div className="space-y-2">
                 <Label htmlFor="budget" className="flex items-center gap-2">
-                  <DollarSignIcon className="h-4 w-4" />
-                  Budget (USD)
+                  <IndianRupee className="h-4 w-4" />
+                  Budget (Rupees)
                 </Label>
                 <Input
                   id="budget"
@@ -206,7 +230,7 @@ export default function HomePage() {
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-blue-700 hover:to-red-700"
               >
                 Generate My Trip Plan
               </Button>
