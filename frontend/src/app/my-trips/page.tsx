@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,38 +8,49 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Navbar } from "@/components/navbar"
 import { PlusIcon, SearchIcon, EyeIcon, EditIcon, TrashIcon, DownloadIcon } from "lucide-react"
-import { mockTripsData } from "@/lib/mock-data"
+import { getTrips, deleteTrip } from "@/lib/db"
+import { useAuth } from "@/components/providers/auth-provider"
 
 export default function MyTripsPage() {
   const router = useRouter()
-  const [trips, setTrips] = useState(mockTripsData)
+  const { user, isAuthenticated, isLoading } = useAuth()
+  const [trips, setTrips] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+
+  useEffect(() => {
+    const fetchTrips = async () => {
+      if (!isLoading && isAuthenticated && user) {
+        const userTrips = await getTrips(user.uid)
+        setTrips(userTrips)
+      }
+    }
+    fetchTrips()
+  }, [isAuthenticated, isLoading, user])
 
   const filteredTrips = trips.filter(
     (trip) =>
-      trip.destination.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trip.travelStyle.toLowerCase().includes(searchTerm.toLowerCase()),
+      trip.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trip.travelStyle?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const handleView = (tripId: string) => {
-    localStorage.setItem("currentTrip", JSON.stringify(trips.find((t) => t.id === tripId)))
-    router.push("/itinerary")
+    router.push(`/itinerary?tripId=${tripId}`)
   }
 
   const handleEdit = (tripId: string) => {
-    localStorage.setItem("currentTrip", JSON.stringify(trips.find((t) => t.id === tripId)))
-    router.push("/")
+    router.push(`/?editTripId=${tripId}`)
   }
 
-  const handleDelete = (tripId: string) => {
+  const handleDelete = async (tripId: string) => {
+    await deleteTrip(tripId)
     setTrips(trips.filter((t) => t.id !== tripId))
   }
 
   const handleExport = (trip: any) => {
     const element = document.createElement("a")
-    const file = new Blob([`Trip to ${trip.destination} - ${trip.dates}`], { type: "text/plain" })
+    const file = new Blob([`Trip to ${trip.location} - ${trip.dateRange?.from?.toDate().toDateString()} to ${trip.dateRange?.to?.toDate().toDateString()}`], { type: "text/plain" })
     element.href = URL.createObjectURL(file)
-    element.download = `trip-${trip.destination}.txt`
+    element.download = `trip-${trip.location}.txt`
     document.body.appendChild(element)
     element.click()
     document.body.removeChild(element)
@@ -76,8 +87,10 @@ export default function MyTripsPage() {
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-xl">{trip.destination}</CardTitle>
-                    <p className="text-sm text-gray-600">{trip.dates}</p>
+                    <CardTitle className="text-xl">{trip.location}</CardTitle>
+                    <p className="text-sm text-gray-600">
+                      {trip.dateRange?.from?.toDate().toDateString()} - {trip.dateRange?.to?.toDate().toDateString()}
+                    </p>
                   </div>
                   <Badge variant={trip.status === "confirmed" ? "default" : "secondary"}>{trip.status}</Badge>
                 </div>
@@ -86,7 +99,7 @@ export default function MyTripsPage() {
                 <div className="space-y-3">
                   <div className="flex flex-wrap gap-2">
                     <Badge variant="outline">{trip.travelStyle}</Badge>
-                    <Badge variant="outline">${trip.budget}</Badge>
+                    <Badge variant="outline">₹{trip.budget}</Badge>
                     {trip.ecoFriendly && <Badge className="bg-green-100 text-green-800">🌱 Eco</Badge>}
                   </div>
 

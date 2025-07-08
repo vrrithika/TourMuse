@@ -18,6 +18,7 @@ import type { DateRange } from "react-day-picker"
 import { LoadingOverlay } from "@/components/loading-overlay"
 import { Navbar } from "@/components/navbar"
 import { useAuth } from "@/components/providers/auth-provider"
+import { addTrip } from "@/lib/db"
 
 const travelStyles = [
   { value: "relaxation", label: "🧘 Relaxation", description: "Peaceful and rejuvenating experiences" },
@@ -37,7 +38,7 @@ export default function HomePage() {
   const [ecoFriendly, setEcoFriendly] = useState(false)
   const [dynamicReplanning, setDynamicReplanning] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
 
   // Handle post-login redirect if pending trip data exists
   useEffect(() => {
@@ -46,13 +47,39 @@ export default function HomePage() {
       const redirectPath = localStorage.getItem("postLoginRedirect")
 
       if (pendingTrip && redirectPath === "/itinerary") {
-        localStorage.setItem("currentTrip", pendingTrip)
+        // Parse the pending trip data and save to Firestore
+        const tripData = JSON.parse(pendingTrip)
+        saveTripToFirestore(tripData)
+        
         localStorage.removeItem("pendingTripData")
         localStorage.removeItem("postLoginRedirect")
-        router.push("/itinerary")
       }
     }
   }, [isAuthenticated, authLoading, router])
+
+  const saveTripToFirestore = async (tripData: any) => {
+    if (!user?.uid) return
+
+    try {
+      const tripId = await addTrip(user.uid, {
+        location: tripData.location,
+        startDate: tripData.dateRange.from,
+        endDate: tripData.dateRange.to,
+        budget: tripData.budget,
+        travelStyle: tripData.travelStyle,
+        ecoFriendly: tripData.ecoFriendly,
+        dynamicReplanning: tripData.dynamicReplanning,
+      })
+
+      // Store the trip ID for the itinerary page
+      localStorage.setItem("currentTripId", tripId)
+      router.push("/itinerary")
+    } catch (error) {
+      console.error("Error saving trip:", error)
+      // Handle error - maybe show a toast notification
+      setIsLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,28 +90,25 @@ export default function HomePage() {
 
     setIsLoading(true)
 
-    // Simulate API call to generate trip plan
-    setTimeout(() => {
-      const tripData = {
-        location,
-        dateRange,
-        budget: Number.parseInt(budget),
-        travelStyle,
-        ecoFriendly,
-        dynamicReplanning,
-        id: Date.now().toString(),
-      }
+    const tripData = {
+      location,
+      dateRange,
+      budget: Number.parseInt(budget),
+      travelStyle,
+      ecoFriendly,
+      dynamicReplanning,
+    }
 
-      if (!isAuthenticated) {
-        localStorage.setItem("pendingTripData", JSON.stringify(tripData))
-        localStorage.setItem("postLoginRedirect", "/itinerary")
-        router.push("/auth")
-        return
-      }
+    if (!isAuthenticated) {
+      // Store trip data temporarily for after login
+      localStorage.setItem("pendingTripData", JSON.stringify(tripData))
+      localStorage.setItem("postLoginRedirect", "/itinerary")
+      router.push("/auth")
+      return
+    }
 
-      localStorage.setItem("currentTrip", JSON.stringify(tripData))
-      router.push("/itinerary")
-    }, 1500)
+    // User is authenticated, save directly to Firestore
+    await saveTripToFirestore(tripData)
   }
 
   return (
@@ -231,8 +255,9 @@ export default function HomePage() {
               <Button
                 type="submit"
                 className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-blue-700 hover:to-red-700"
+                disabled={isLoading}
               >
-                Generate My Trip Plan
+                {isLoading ? "Generating..." : "Generate My Trip Plan"}
               </Button>
             </form>
           </CardContent>

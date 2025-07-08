@@ -12,6 +12,7 @@ import {
   updateProfile,
 } from "firebase/auth"
 
+
 interface User {
   uid: string
   name: string

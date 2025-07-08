@@ -1,0 +1,38 @@
+# Core API server
+fastapi
+uvicorn[standard]
+
+# Pydantic (compatible with FastAPI latest)
+pydantic
+
+# CrewAI ecosystem
+crewai
+crewai_tools
+
+# LangChain for orchestration
+langchain
+langchain-community
+langchain-core
+
+# LLaMA 3.2 local or OpenAI API usage
+openai
+
+# DuckDuckGoSearch integration
+duckduckgo-search
+
+# Optional: For environment variable management
+python-dotenv
+
+# Async tools and HTTP client
+httpx
+
+# Logging
+loguru
+
+# If you use Jupyter for testing workflows
+ipython
+
+
+
+# Firebase Admin if using for Auth and Firestore
+firebase-admin
